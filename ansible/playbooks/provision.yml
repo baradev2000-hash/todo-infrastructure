@@ -1,0 +1,90 @@
+---
+- name: Provision Todo application hosts
+  hosts: dev:prod
+  become: true
+  vars:
+    compose_plugin_version: v5.5.0
+    monitoring_dir: /opt/todo/monitoring
+
+  tasks:
+    - name: Install Docker and system prerequisites
+      ansible.builtin.dnf:
+        name:
+          - docker
+          - ca-certificates
+        state: present
+        update_cache: true
+
+    - name: Start and enable Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Allow the EC2 user to run Docker
+      ansible.builtin.user:
+        name: ec2-user
+        groups: docker
+        append: true
+
+    - name: Create Docker CLI plugin directory
+      ansible.builtin.file:
+        path: /usr/local/lib/docker/cli-plugins
+        state: directory
+        mode: "0755"
+
+    - name: Install Docker Compose plugin
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ compose_plugin_version }}/docker-compose-linux-x86_64"
+        dest: /usr/local/lib/docker/cli-plugins/docker-compose
+        mode: "0755"
+
+    - name: Verify Docker Compose installation
+      ansible.builtin.command: docker compose version
+      changed_when: false
+
+    - name: Create monitoring directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ monitoring_dir }}"
+        - "{{ monitoring_dir }}/prometheus"
+        - "{{ monitoring_dir }}/secrets"
+
+    - name: Generate the Grafana administrator password once
+      ansible.builtin.shell: |
+        set -o pipefail
+        if [ ! -s {{ monitoring_dir }}/secrets/grafana-admin-password ]; then
+          openssl rand -base64 32 > {{ monitoring_dir }}/secrets/grafana-admin-password
+          chmod 600 {{ monitoring_dir }}/secrets/grafana-admin-password
+        fi
+      args:
+        executable: /bin/bash
+      changed_when: false
+      no_log: true
+
+    - name: Read Grafana administrator password
+      ansible.builtin.slurp:
+        src: "{{ monitoring_dir }}/secrets/grafana-admin-password"
+      register: grafana_password
+      no_log: true
+
+    - name: Install Prometheus configuration
+      ansible.builtin.copy:
+        src: ../files/prometheus.yml
+        dest: "{{ monitoring_dir }}/prometheus/prometheus.yml"
+        mode: "0644"
+
+    - name: Install monitoring Docker Compose configuration
+      ansible.builtin.template:
+        src: ../templates/monitoring-compose.yml.j2
+        dest: "{{ monitoring_dir }}/compose.yml"
+        mode: "0644"
+
+    - name: Start Traefik, Prometheus and Grafana
+      ansible.builtin.command: docker compose up -d
+      args:
+        chdir: "{{ monitoring_dir }}"
+      changed_when: false

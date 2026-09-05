@@ -1,0 +1,6 @@
+# Copiez ce fichier vers terraform.tfvars puis remplacez les valeurs.
+aws_region    = "eu-west-3"
+project_name  = "todo"
+key_name      = "todo-ec2-key"
+admin_cidr    = "VOTRE_IP_PUBLIQUE/32"
+instance_type = "t3.micro"
