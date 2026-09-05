@@ -70,11 +70,11 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_security_group" "app" {
   name_prefix = "${var.project_name}-app-"
-  description = "Accès aux serveurs Todo"
+  description = "Access to Todo servers"
   vpc_id      = aws_vpc.this.id
 
   ingress {
-    description = "SSH depuis le poste d'administration"
+    description = "SSH from the administrator workstation"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -82,7 +82,7 @@ resource "aws_security_group" "app" {
   }
 
   ingress {
-    description = "HTTP public via Traefik"
+    description = "Public HTTP through Traefik"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -90,7 +90,7 @@ resource "aws_security_group" "app" {
   }
 
   ingress {
-    description = "HTTPS public via Traefik"
+    description = "Public HTTPS through Traefik"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -98,7 +98,7 @@ resource "aws_security_group" "app" {
   }
 
   egress {
-    description = "Sortie Internet"
+    description = "Internet egress"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"

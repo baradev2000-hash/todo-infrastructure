@@ -22,3 +22,16 @@ Les secrets, les clés privées, les fichiers d'inventaire générés et les ét
    ```
 
 Les adresses IP sont affichées après l'application : `terraform output ansible_hosts`.
+
+## Ansible
+
+Après `terraform apply`, générez l'inventaire avec la clé privée EC2, puis provisionnez les deux serveurs :
+
+```bash
+cd ansible
+bash generate_inventory.sh /chemin/absolu/vers/todo-ec2-key.pem
+ansible all -m ping
+ansible-playbook playbooks/provision.yml
+```
+
+Le playbook installe Docker et Docker Compose, puis lance Traefik, Prometheus, Grafana et Node Exporter sur les groupes `dev` et `prod`.
